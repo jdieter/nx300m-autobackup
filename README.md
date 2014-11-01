@@ -16,6 +16,7 @@ Copy the contents of the sdcard directory onto the sdcard
 from the camera.
 
 In autobackup/config:
+
 1. Set the ESSID of the network you want to connect to
 2. Set the hostname you want to connect to in the form
 user@hostname
