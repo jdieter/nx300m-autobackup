@@ -1,0 +1,7 @@
+KEEP_DAYS=14
+DEST_SERVER=user@server
+DEST_PATH="Pictures"
+ESSID=MyWifi
+
+# Uncomment for logging
+#LOG=/mnt/mmc/autobackup.log
