@@ -11,13 +11,8 @@ fi
 
 . /mnt/mmc/autobackup/config
 
-iwconfig wlan0 > /dev/null
-if [ "$?" -ne "0" ]; then
-    /usr/sbin/connmand -W nl80211 -r
-    /usr/sbin/net-config
-    dbus-send --system --dest=net.netconfig --print-reply /net/netconfig/wifi net.netconfig.wifi.LoadDriver string:"wifi"
-    sleep 5
-else
+iwconfig wlan0
+if [ "$?" -eq "0" ]; then
     iwconfig wlan0 | grep -q "ESSID:\"$ESSID\""
     if [ "$?" -eq "0" ]; then # We're already connected to the right ESSID; successfully exit
         exit 0
@@ -28,7 +23,13 @@ else
         echo "Connected to wrong ESSID, exitting"
         exit 1
     fi
+    /mnt/mmc/autobackup/disconnect.sh
 fi
+
+/usr/sbin/connmand -W nl80211 -r
+/usr/sbin/net-config
+dbus-send --system --dest=net.netconfig --print-reply /net/netconfig/wifi net.netconfig.wifi.LoadDriver string:"wifi"
+sleep 2
 
 for d in `ls /var/lib/connman`; do
     if [ ! -d "/var/lib/connman/$d" ]; then
@@ -38,9 +39,10 @@ for d in `ls /var/lib/connman`; do
 
     grep -q "^Name=$ESSID$" /var/lib/connman/"$d"/settings
     if [ "$?" -eq "0" ]; then
-       echo "Connecting to $ESSID using $d"
+        echo "Connecting to $ESSID using $d"
         dbus-send --system --print-reply --dest=net.connman "/net/connman/service/$d" net.connman.Service.Connect
         if [ "$?" -eq "0" ]; then #We've successfully connected
+            sleep 2
             ssh -o PasswordAuthentication=no -o StrictHostKeyChecking=no $DEST_SERVER "/bin/true"
             if [ "$?" -ne "0" ]; then
                 echo "Unable to ssh into $DEST_SERVER"
