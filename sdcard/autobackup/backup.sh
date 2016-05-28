@@ -4,6 +4,8 @@
 # Distributed under the terms of the GNU General Public
 # License v2 or later
 
+export LD_LIBRARY_PATH=/mnt/mmc/autobackup/lib:/usr/lib:/lib
+
 ERROR=0
 
 if [ ! -e /mnt/mmc/autobackup/config ]; then
@@ -11,7 +13,17 @@ if [ ! -e /mnt/mmc/autobackup/config ]; then
     exit 1
 fi
 
+WIFI_MODE="as-needed"
+DATE_FORMAT="+%Y/%Y.%m.%d"
+
 . /mnt/mmc/autobackup/config
+
+# Validate date format
+date "$DATE_FORMAT" > /dev/null
+if [ "$?" -ne 0 ]; then
+    echo "$DATE_FORMAT is not a valid date format" >> /mnt/mmc/autobackup.log
+    exit 1
+fi
 
 # Copy ssh key and known_hosts to /root (which is a temporary file anyway)
 if [ -e /mnt/mmc/autobackup/ssh/id_rsa ]; then
@@ -27,6 +39,7 @@ chmod 600 /root/.ssh/id_rsa
 chmod ugo-X /root/.ssh -R
 
 while [ 1 -eq 1 ]; do
+    CHANGED=0
     for i in `ls /mnt/mmc/DCIM`; do
         cd /mnt/mmc/DCIM/"${i}"
         for file in `ls`; do
@@ -38,30 +51,47 @@ while [ 1 -eq 1 ]; do
                 # Don't allow camera to automatically shut down
                 /mnt/mmc/autobackup/keep_alive.sh &
 
-                # Check wifi and connect if necessary
+                # Connect to WiFi if available
                 /mnt/mmc/autobackup/connect.sh
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break
-                fi 
-                
-                DATE=`stat $file | grep "Modify" | awk '{ print $2 }' | sed s/-/./g`
+                fi
+
+                DATESTAMP=`stat -c "%Y" "$file"`
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break
                 fi
-                ssh -o PasswordAuthentication=no $DEST_SERVER "mkdir -p \"$DEST_PATH\"/$DATE"
+                DATE=`date -d "@$DATESTAMP" "$DATE_FORMAT"`
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break
                 fi
-                scp -p "$file" $DEST_SERVER:~/"'$DEST_PATH'"/$DATE/
+                ssh -o PasswordAuthentication=no $DEST_SERVER "mkdir -p \"$DEST_PATH/$DATE\""
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break
                 fi
-                
-                ssh -o PasswordAuthentication=no $DEST_SERVER "chmod ugo-x \"$DEST_PATH\"/$DATE/\"$file\""
+
+                # Verify that file isn't currently open
+                lsof | grep -q "$file"
+                retval="$?"
+                while [ "$retval" -eq 0 ]; do
+                    sleep 1
+                    lsof | grep -q "$file"
+                    retval="$?"
+                done
+
+                # Copy file to server
+                scp -p "$file" "$DEST_SERVER:~/$DEST_PATH/$DATE/"
+                if [ "$?" -ne "0" ]; then
+                    ERROR=1
+                    break
+                fi
+
+                CHANGED=1
+                ssh -o PasswordAuthentication=no $DEST_SERVER "chmod ugo-x \"$DEST_PATH/$DATE/$file\""
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break
@@ -74,12 +104,17 @@ while [ 1 -eq 1 ]; do
             break
         fi
     done
-    ps aux | grep -q keep_alive.sh
-    if [ "$?" -eq 0 ]; then
-        echo "Shutting down Wifi"
-        killall keep_alive.sh
-        /mnt/mmc/autobackup/disconnect.sh
+    if [ "$CHANGED" -eq "0" ] || [ "$ERROR" -ne "0" ]; then
+        break
     fi
-    exit 0
-    sleep 600
 done
+ps aux | grep -q keep_alive.sh
+if [ "$?" -eq 0 ]; then
+    echo "Shutting down Wifi"
+    killall keep_alive.sh
+    /mnt/mmc/autobackup/disconnect.sh
+fi
+
+if [ "$ERROR" -ne "0" ]; then
+    exit "$ERROR"
+fi

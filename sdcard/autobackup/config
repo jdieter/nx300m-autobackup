@@ -1,7 +1,20 @@
-KEEP_DAYS=14
 DEST_SERVER=user@server
 DEST_PATH="Pictures"
 ESSID=MyWifi
+
+# Date format to use for directory and file structure to
+# be appended to DEST_PATH above. The default is
+# Year/Year.Month.Day (i.e. 2016/2016.05.28). To see all
+# available formatting options, type 'man 1 date' on any
+# *nix system
+DATE_FORMAT="+%Y/%Y.%m.%d"
+
+# If method is 'power-up', the camera will upload pictures
+# once when it's turned on.  If method is 'continuous', the
+# camera will keep uploading any additional pictures you take
+# while it is turned on.  For home use, 'power-up' should be
+# fine and will use the least power.
+METHOD=power-up
 
 # Uncomment for logging
 #LOG=/mnt/mmc/autobackup.log

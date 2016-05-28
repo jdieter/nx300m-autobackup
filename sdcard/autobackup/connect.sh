@@ -57,4 +57,5 @@ for d in `ls /var/lib/connman`; do
     fi
 done
 
+echo "Unable to connect to WiFi"
 exit 1

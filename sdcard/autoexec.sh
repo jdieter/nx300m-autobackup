@@ -19,5 +19,5 @@ cat /dev/null > $LOG
 #/mnt/mmc/autobackup/keep_alive.sh 2>&1 | cat >> $LOG &
 #/mnt/mmc/autobackup/connect.sh 2>&1 | cat >> $LOG
 
-# Run backup server
-/mnt/mmc/autobackup/backup.sh 2>&1 | cat >> "$LOG"
+# Run sync server
+/mnt/mmc/autobackup/sync.sh 2>&1 | cat >> "$LOG"
