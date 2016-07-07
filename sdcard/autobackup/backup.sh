@@ -6,6 +6,7 @@
 
 export LD_LIBRARY_PATH=/mnt/mmc/autobackup/lib:/usr/lib:/lib
 
+SSH_PORT=22
 ERROR=0
 
 if [ ! -e /mnt/mmc/autobackup/config ]; then
@@ -68,7 +69,7 @@ while [ 1 -eq 1 ]; do
                     ERROR=1
                     break
                 fi
-                ssh -o PasswordAuthentication=no $DEST_SERVER "mkdir -p \"$DEST_PATH/$DATE\""
+                ssh -p $SSH_PORT -o PasswordAuthentication=no $DEST_SERVER "mkdir -p \"$DEST_PATH/$DATE\""
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break
@@ -84,14 +85,14 @@ while [ 1 -eq 1 ]; do
                 done
 
                 # Copy file to server
-                scp -p "$file" "$DEST_SERVER:~/$DEST_PATH/$DATE/"
+                scp -P $SSH_PORT -p "$file" "$DEST_SERVER:~/$DEST_PATH/$DATE/"
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break
                 fi
 
                 CHANGED=1
-                ssh -o PasswordAuthentication=no $DEST_SERVER "chmod ugo-x \"$DEST_PATH/$DATE/$file\""
+                ssh -p $SSH_PORT -o PasswordAuthentication=no $DEST_SERVER "chmod ugo-x \"$DEST_PATH/$DATE/$file\""
                 if [ "$?" -ne "0" ]; then
                     ERROR=1
                     break

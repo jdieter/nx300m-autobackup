@@ -16,5 +16,7 @@ DATE_FORMAT="+%Y/%Y.%m.%d"
 # fine and will use the least power.
 METHOD=power-up
 
+SSH_PORT=22
+
 # Uncomment for logging
 #LOG=/mnt/mmc/autobackup.log

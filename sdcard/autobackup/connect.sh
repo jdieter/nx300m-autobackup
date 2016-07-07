@@ -9,6 +9,8 @@ if [ ! -e /mnt/mmc/autobackup/config ]; then
     exit 1
 fi
 
+SSH_PORT=22
+
 . /mnt/mmc/autobackup/config
 
 iwconfig wlan0
@@ -43,14 +45,14 @@ for d in `ls /var/lib/connman`; do
         dbus-send --system --print-reply --dest=net.connman "/net/connman/service/$d" net.connman.Service.Connect
         if [ "$?" -eq "0" ]; then #We've successfully connected
             sleep 2
-            ssh -o PasswordAuthentication=no -o StrictHostKeyChecking=no $DEST_SERVER "/bin/true"
+            ssh -p $SSH_PORT -o PasswordAuthentication=no -o StrictHostKeyChecking=no $DEST_SERVER "/bin/true"
             if [ "$?" -ne "0" ]; then
                 echo "Unable to ssh into $DEST_SERVER"
                 exit 1
             fi
 
             echo "Setting date from $DEST_SERVER"
-            date -s "`ssh -o PasswordAuthentication=no $DEST_SERVER date "+%F\ %T"`"
+            date -s "`ssh -p $SSH_PORT -o PasswordAuthentication=no $DEST_SERVER date "+%F\ %T"`"
             hwclock -r
             exit 0
         fi
